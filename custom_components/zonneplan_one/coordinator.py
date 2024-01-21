@@ -20,6 +20,7 @@ from .api import AsyncConfigEntryAuth
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
+#_LOGGER.setLevel(logging.DEBUG)
 
 
 def getGasPriceFromSummary(summary):
@@ -59,11 +60,11 @@ class ZonneplanUpdateCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(seconds=300),
+            update_interval=timedelta(seconds=30),
             request_refresh_debouncer=Debouncer(
                 hass,
                 _LOGGER,
-                cooldown=60,
+                cooldown=28,
                 immediate=False
             )
         )
@@ -86,13 +87,14 @@ class ZonneplanUpdateCoordinator(DataUpdateCoordinator):
         accounts = None
 
         _LOGGER.info("_async_update_data: start")
+        next_update_at = self.last_accounts_update + timedelta(minutes=1)
         # Get all info of all connections (part of your account info)
-        if not result or not self.last_accounts_update or self.last_accounts_update < dt_util.now() - timedelta(minutes=59):
+        if not result or not self.last_accounts_update or dt_util.now() < next_update_at:
             accounts = await self.api.async_get_user_accounts()
             if not accounts and not result:
                 return result
         else:
-            _LOGGER.debug("Last time accounts are fetched: %s, next time to fetch: %s", self.last_accounts_update, self.last_accounts_update + timedelta(minutes=59))
+            _LOGGER.debug("Last time accounts are fetched: %s, next time to fetch: %s", self.last_accounts_update, next_update_at)
 
         if accounts:
             self.last_accounts_update = dt_util.now()
